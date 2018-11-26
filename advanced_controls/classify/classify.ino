@@ -24,7 +24,7 @@
 #define PRELENGTH                   5
 #define THRESHOLD                   0.5
 
-#define KMEANS_THRESHOLD            0.015
+#define KMEANS_THRESHOLD            0.025
 #define LOUDNESS_THRESHOLD          700
 
 /*---------------------------*/
@@ -85,19 +85,19 @@ float l2_norm3(float dim1, float dim2, float dim3, float* centroid) {
 /*      Helper functions     */
 /*---------------------------*/
 void subtract(float *x, float *y, float *result, int numElem) {
-    for (int i = 0 ; i < numElem ; ++i)
+    for (int i = 0 ; i < numElem ; i++)
         result[i] = y[i] - x[i];
 }
 
 float dot_product(float *v1, float *v2, int numElem) {
     float result = 0;
     for (int i = 0; i < numElem; i++){
-      result = v1[i] * v2[i];
+      result = result + v1[i] * v2[i];
     }
     return result;
 }
 
-int index_of_smallest(float arr[], int numElem) {
+int index_of_smallest(float *arr, int numElem) {
     int smallest = 0;
     for(int i = 1; i < numElem; i++) {
             if(arr[i] < arr[smallest])
@@ -105,6 +105,15 @@ int index_of_smallest(float arr[], int numElem) {
     }
 
     return smallest;
+}
+
+void printArr(float *arr, int numElem) {
+    Serial.print("[");
+    for (int i = 0; i < numElem; i++) {
+      Serial.print(arr[i]);
+      Serial.print(", ");
+    }
+    Serial.println("]");
 }
 
 void setup(void) {
@@ -127,6 +136,8 @@ void loop(void) {
     // Do classification only if loud enough.
     if (envelope(re, result)) {
 
+      Serial.println("-------------------");
+
       // Reset projection result variables declared above
       proj1 = 0;
       proj2 = 0;
@@ -137,13 +148,16 @@ void loop(void) {
 
       // Project 'result' on the principal components
       // YOUR CODE HERE
-
+      printArr(result, 80);
       // subtract mean vec from result
       subtract(mean_vec, result, result, SNIPPET_SIZE);
       // project ^ onto PC1, PC2
+      printArr(result, 80);
+
 
       float projection[2] = {dot_product(result, pca_vec1, SNIPPET_SIZE), dot_product(result, pca_vec2, SNIPPET_SIZE)};
 
+      printArr(projection, 2);
 
       // Classification
       // Use the function l2_norm defined above
@@ -155,10 +169,15 @@ void loop(void) {
       }
 
       int smallest = index_of_smallest(distances, 4);
-      
+      Serial.println("Smallest Distance");
+      Serial.println(distances[smallest]);
+
+      Serial.print("Predicted Word: ");
+      Serial.println(WORDS[smallest]);
+      Serial.println("-------------------");
 
       // Check against KMEANS_THRESHOLD and print result over serial
-      if (smallest < KMEANS_THRESHOLD) {
+      if (distances[smallest] < KMEANS_THRESHOLD) {
           Serial.print("Word Identified: ");
           Serial.println(WORDS[smallest]);
       } else {

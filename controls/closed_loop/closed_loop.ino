@@ -64,12 +64,6 @@ float k_right = 0.5;
 /*---------------------------*/
 
 float driveStraight_left(float v_star, float delta) {
-//  Serial.print("Left correction factor: ");
-//  Serial.println((k_left / theta_left) * delta);
-//  Serial.print("k_left: ");
-//  Serial.println(k_left);
-//  Serial.print("delta: ");
-//  Serial.println(delta);
   return driveStraight_left_OL(v_star) - (k_left / theta_left) * delta;
 }
 

@@ -12,7 +12,7 @@
  */
 
 #define LEFT_MOTOR                  P2_0
-#define LEFT_ENCODER                P6_1
+#define LEFT_ENCODER                P6_3
 #define RIGHT_MOTOR                 P1_5
 #define RIGHT_ENCODER               P6_2
 
@@ -51,31 +51,38 @@ encoder_t right_encoder = {RIGHT_ENCODER, 0, LOW, 0};
 /*    From closed_loop.ino   */
 /*---------------------------*/
 
-float theta_left = ;
-float theta_right = ;
-float beta_left = ;
-float beta_right = ;
-float v_star = ;
+float theta_left = 0.283;
+float theta_right = 0.2885;
+float beta_left = -32.09;
+float beta_right = -31.56;
+float v_star = 81.8;
 
 // PWM inputs to jolt the car straight
-int left_jolt = ;
-int right_jolt = ;
+int left_jolt = 240;
+int right_jolt = 230;
 
 // Control gains
-float k_left = ;
-float k_right = ;
+float k_left = 0.5;
+float k_right = 0.5;
 
 /*---------------------------*/
 /*      CODE BLOCK CON2      */
 /*    From closed_loop.ino   */
 /*---------------------------*/
+float driveStraight_left_OL(float v_star) {
+  return (v_star + beta_left) / theta_left;
+}
+
+float driveStraight_right_OL(float v_star) {
+  return (v_star + beta_right) / theta_right;
+}
 
 float driveStraight_left(float delta) {
-  return ;
+  return driveStraight_left_OL(v_star) - (k_left / theta_left) * delta;
 }
 
 float driveStraight_right(float delta) {
-  return ;
+  return driveStraight_right_OL(v_star) + (k_right / theta_right) * delta;
 }
 
 /*---------------------------*/
@@ -83,7 +90,7 @@ float driveStraight_right(float delta) {
 /*    From closed_loop.ino   */
 /*---------------------------*/
 
-float delta_ss = ;
+float delta_ss = 0;
 
 /*---------------------------*/
 /*      CODE BLOCK CON4      */
@@ -97,14 +104,15 @@ int run_times[4] = {7000, 5000, 2500, 5000};
 
 float delta_reference(int k) {
   // YOUR CODE HERE
+  float car_delta = CAR_WIDTH * (v_star / 5) * k / TURN_RADIUS;
   if (drive_mode == DRIVE_RIGHT) {
-    return ;
+    return car_delta;
   }
   else if (drive_mode == DRIVE_LEFT) {
-    return ;
+    return -car_delta;
   }
   else { // DRIVE_FAR, DRIVE_CLOSE
-    return ;
+    return 0;
   }
 }
 
