@@ -97,10 +97,10 @@ float delta_ss = 0;
 /*---------------------------*/
 
 #define CAR_WIDTH                   15.0 // in cm
-#define TURN_RADIUS                 91 // in cm - 6 feet diameter = 3 tiles in 125 Cory
+#define TURN_RADIUS                 60 // in cm - 6 feet diameter = 3 tiles in 125 Cory
 // #define TURN_RADIUS                 60 // in cm - 4 feet diameter = 2 tiles in 125 Cory
 
-int run_times[4] = {7000, 5000, 2500, 5000};
+int run_times[4] = {7000, 3000, 2500, 3000};
 
 float delta_reference(int k) {
   // YOUR CODE HERE
@@ -124,6 +124,7 @@ float delta_reference(int k) {
 
 float straight_correction(int k) {
   // YOUR CODE HERE
+  
   return 0;
 }
 
