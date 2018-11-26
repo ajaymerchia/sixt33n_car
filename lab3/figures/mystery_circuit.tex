@@ -1,0 +1,26 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% To convert to image:            %
+%   latex2png mystery_circuit.png %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\documentclass{minimal}
+\usepackage{circuitikzgit}
+\begin{document}
+
+\begin{center}
+\begin{circuitikz}
+\draw (0,0) node[left=2mm] {$5V$}
+to                                      (2,0)
+to [R=$R$]   (2,-2)
+to [short,-o]                           (2,-2.75);
+% switch
+\draw [very thick] (2,-2.78)-- +(-60:0.46);
+% continue circuit
+\draw (2,-3.25)
+to [short,o-]                           (2,-4)
+to [C=$C$]                              (2,-6)
+node[ground]{};
+
+\end{circuitikz}
+\end{center}
+
+\end{document}
