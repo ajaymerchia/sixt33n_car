@@ -1,4 +1,4 @@
-/*
+                                                                 /*
  * turning.ino
  *
  * Implementing turns in SIXT33N
@@ -100,7 +100,7 @@ float delta_ss = 0;
 #define TURN_RADIUS                 60 // in cm - 6 feet diameter = 3 tiles in 125 Cory
 // #define TURN_RADIUS                 60 // in cm - 4 feet diameter = 2 tiles in 125 Cory
 
-int run_times[4] = {7000, 3000, 2500, 3000};
+int run_times[4] = {4000, 2000, 2500, 2000};
 
 float delta_reference(int k) {
   // YOUR CODE HERE

@@ -1,13 +1,154 @@
 /*
- * classify.ino
+ * integration.ino
+ * Final sketch for SIXT33N Speech version
  *
- * EE16B Spring 2016
+ * EE16B Fall 2016
  * Emily Naviasky & Nathaniel Mailoa
  *
  * EE 16B Fall 2017
  * Andrew Blatner
  *
  */
+
+/********************************************************/
+/********************************************************/
+/***                                                  ***/
+/*** Constants and global variables from turning.ino. ***/
+/***                                                  ***/
+/********************************************************/
+/********************************************************/
+
+#define LEFT_MOTOR                  P2_0
+#define LEFT_ENCODER                P6_3
+#define RIGHT_MOTOR                 P1_5
+#define RIGHT_ENCODER               P6_2
+
+#define SAMPLING_INTERVAL           100
+int sample_lens[4] = {0};
+
+// Operation modes
+#define MODE_LISTEN                 0
+#define MODE_DRIVE                  1
+int timer_mode = MODE_LISTEN;
+
+#define DRIVE_FAR                   0
+#define DRIVE_LEFT                  1
+#define DRIVE_CLOSE                 2
+#define DRIVE_RIGHT                 3
+
+#define JOLT_STEPS                  2
+
+boolean loop_mode = MODE_DRIVE;
+int drive_mode = 0;
+
+int step_num = 0;
+volatile boolean do_loop = 0; // timer signal to increment timestep
+
+typedef struct encoder {
+  int pin;
+  int pos;
+  bool level;
+  int avg;
+} encoder_t;
+
+encoder_t left_encoder = {LEFT_ENCODER, 0, LOW, 0};
+encoder_t right_encoder = {RIGHT_ENCODER, 0, LOW, 0};
+
+/*---------------------------*/
+/*      CODE BLOCK CON1      */
+/*      From turning.ino     */
+/*---------------------------*/
+
+float theta_left = 0.283;
+float theta_right = 0.2885;
+float beta_left = -32.09;
+float beta_right = -31.56;
+float v_star = 81.8;
+
+// PWM inputs to jolt the car straight
+int left_jolt = 240;
+int right_jolt = 230;
+
+// Control gains
+float k_left = 0.5;
+float k_right = 0.5;
+
+/*---------------------------*/
+/*      CODE BLOCK CON2      */
+/*      From turning.ino     */
+/*---------------------------*/
+
+float driveStraight_left_OL(float v_star) {
+  return (v_star + beta_left) / theta_left;
+}
+
+float driveStraight_right_OL(float v_star) {
+  return (v_star + beta_right) / theta_right;
+}
+
+float driveStraight_left(float delta) {
+  return driveStraight_left_OL(v_star) - (k_left / theta_left) * delta;
+}
+
+float driveStraight_right(float delta) {
+  return driveStraight_right_OL(v_star) + (k_right / theta_right) * delta;
+}
+
+/*---------------------------*/
+/*      CODE BLOCK CON3      */
+/*      From turning.ino     */
+/*---------------------------*/
+
+float delta_ss = 0;
+
+/*---------------------------*/
+/*      CODE BLOCK CON4      */
+/*      From turning.ino     */
+/*---------------------------*/
+
+#define CAR_WIDTH                   15.0 // in cm
+//#define TURN_RADIUS                 91 // in cm - 6 feet diameter = 3 tiles in 125 Cory
+ #define TURN_RADIUS                 60 // in cm - 4 feet diameter = 2 tiles in 125 Cory
+
+int run_times[4] = {4000, 2000, 2500, 2000};
+
+float delta_reference(int k) {
+  // YOUR CODE HERE
+  float car_delta = CAR_WIDTH * (v_star / 5) * k / TURN_RADIUS;
+  if (drive_mode == DRIVE_RIGHT) {
+    return car_delta;
+  }
+  else if (drive_mode == DRIVE_LEFT) {
+    return -car_delta;
+  }
+  else { // DRIVE_FAR, DRIVE_CLOSE
+    return 0;
+  }
+}
+
+/*---------------------------*/
+/*      CODE BLOCK CON5      */
+/*      From turning.ino     */
+/*---------------------------*/
+#define INFINITY                    (3.4e+38)
+#define STRAIGHT_RADIUS             INFINITY
+
+float straight_correction(int k) {
+  // YOUR CODE HERE
+  return 0;
+}
+
+/*---------------------------*/
+/*---------------------------*/
+/*---------------------------*/
+
+/*********************************************************/
+/*********************************************************/
+/***                                                   ***/
+/*** Constants and glboal variables from classify.ino. ***/
+/***                                                   ***/
+/*********************************************************/
+/*********************************************************/
 
 #define MIC_INPUT                   P6_0
 
@@ -17,6 +158,7 @@
 
 /*---------------------------*/
 /*      CODE BLOCK PCA1      */
+/*     From classify.ino     */
 /*---------------------------*/
 
 // Enveloping and K-means constants
@@ -24,13 +166,18 @@
 #define PRELENGTH                   5
 #define THRESHOLD                   0.5
 
-#define KMEANS_THRESHOLD            0.028
+#define KMEANS_THRESHOLD            0.031
 #define LOUDNESS_THRESHOLD          700
 
 /*---------------------------*/
-/*      CODE BLOCK PCA2      */
+/*---------------------------*/
 /*---------------------------*/
 
+
+/*---------------------------*/
+/*      CODE BLOCK PCA2      */
+/*     From classify.ino     */
+/*---------------------------*/
 char *WORDS[4] = {"Matrix", "Modify", "EECS", "Rhodes"};
 
 float pca_vec1[SNIPPET_SIZE] = {-0.00376866, -0.0189012, -0.03516227, -0.05661686, -0.07957052, -0.16367538, -0.16697057, -0.19867985, -0.19598158, -0.20335335, -0.21290054, -0.21741, -0.22396845, -0.23817383, -0.2430003, -0.21232477, -0.14828045, -0.09743033, 0.00170277, 0.05552989, 0.09560981, 0.09041017, 0.11476945, 0.13641752, 0.15187874, 0.14089254, 0.10872868, 0.06601898, 0.02715708, 0.00963226, 0.00533542, 0.0046061, -0.00577104, -0.00902716, -0.02531295, -0.09343613, -0.15046963, -0.17061931, -0.15684876, -0.12722816, -0.0868667, -0.02434577, 0.0444341, 0.08483636, 0.11691294, 0.13160803, 0.13240606, 0.14408423, 0.13930163, 0.14573859, 0.14387171, 0.13165882, 0.13413329, 0.13102033, 0.11988351, 0.09707641, 0.09125536, 0.0767251, 0.07715464, 0.06293596, 0.05549859, 0.05554385, 0.03320784, 0.02610693, 0.02876296, 0.02956124, 0.02576383, 0.02555701, 0.02177625, 0.02338174, 0.02623668, 0.02989526, 0.02570069, 0.0271193, 0.02242742, 0.0208822, 0.01817166, 0.01651639, 0.02040192, 0.01985631};
@@ -50,10 +197,16 @@ float* centroids[4] = {
 /*---------------------------*/
 
 float result[SNIPPET_SIZE] = {0};
+float proj1 = 0;
+float proj2 = 0;
 
 // Data array and index pointer
 int re[SIZE] = {0};
 volatile int re_pointer = 0;
+
+/*---------------------------------------------------*/
+/*---------------------------------------------------*/
+/*---------------------------------------------------*/
 
 /*---------------------------*/
 /*       Norm functions      */
@@ -77,7 +230,6 @@ float l2_norm(float dim1, float dim2, float* centroid) {
 float l2_norm3(float dim1, float dim2, float dim3, float* centroid) {
   return sqrt(pow(dim1-centroid[0],2) + pow(dim2-centroid[1],2) + pow(dim3-centroid[2],2));
 }
-
 
 /*---------------------------*/
 /*      Helper functions     */
@@ -114,54 +266,67 @@ void printArr(float *arr, int numElem) {
     Serial.println("]");
 }
 
+
+
+
 void setup(void) {
   Serial.begin(38400);
 
-  pinMode(MIC_INPUT, INPUT);
+  pinMode(LEFT_MOTOR, OUTPUT);
+  pinMode(LEFT_ENCODER, INPUT);
+  pinMode(RIGHT_MOTOR, OUTPUT);
+  pinMode(RIGHT_ENCODER, INPUT);
   pinMode(RED_LED, OUTPUT);
   pinMode(GREEN_LED, OUTPUT);
+  pinMode(MIC_INPUT, INPUT);
 
-  re_pointer = 0;
+  for (int i = 0; i <= 4; i++) {
+    sample_lens[i] = run_times[i]/SAMPLING_INTERVAL;
+  }
+
+  write_pwm(0, 0);
+  delay(2000); // Wait 2 seconds to put down car
   reset_blinker();
-  setTimer();
+  start_listen_mode();
 }
 
 void loop(void) {
-  if (re_pointer == SIZE) {
+  check_encoders();
+  if (timer_mode == MODE_LISTEN && re_pointer == SIZE){
+//      Serial.println("I'm alive");
+
+    // Stop motor
+    write_pwm(0, 0);
     digitalWrite(RED_LED, LOW);
 
-    // Apply enveloping function and get snippet with speech.
-    // Do classification only if loud enough.
+    // if enveloped data is above some preset value
     if (envelope(re, result)) {
+//      Serial.println("I'm enveloped");
 
-      Serial.println("-------------------");
-
-
+      // Reset projection result variables declared above
+      proj1 = 0;
+      proj2 = 0;
 
       /*---------------------------*/
       /*      CODE BLOCK PCA3      */
+      /*     From classify.ino     */
+      /*     with more changes     */
       /*---------------------------*/
 
       // Project 'result' on the principal components
       // YOUR CODE HERE
-      printArr(result, 80);
-      // subtract mean vec from result
       subtract(mean_vec, result, result, SNIPPET_SIZE);
-      // project ^ onto PC1, PC2
-      printArr(result, 80);
+      proj1 = dot_product(result, pca_vec1, SNIPPET_SIZE);
+      proj2 = dot_product(result, pca_vec2, SNIPPET_SIZE);
 
-
-      float projection[2] = {dot_product(result, pca_vec1, SNIPPET_SIZE), dot_product(result, pca_vec2, SNIPPET_SIZE)};
-
-//      printArr(projection, 2);
 
       // Classification
       // Use the function l2_norm defined above
-      // ith centroids: centroids[i]
+      // ith centroid: centroids[i]
       // YOUR CODE HERE
       float distances[4] = {0};
       for (int i = 0; i < 4; i++) {
-          distances[i] = l2_norm(projection[0], projection[1], centroids[i]);
+          distances[i] = l2_norm(proj1, proj2, centroids[i]);
       }
 
       int smallest = index_of_smallest(distances, 4);
@@ -171,27 +336,77 @@ void loop(void) {
       Serial.print("Predicted Word: ");
       Serial.println(WORDS[smallest]);
       Serial.println("-------------------");
+      
 
       // Check against KMEANS_THRESHOLD and print result over serial
+      // YOUR CODE HERE
       if (distances[smallest] < KMEANS_THRESHOLD) {
-          Serial.print("Word Identified: ");
+        Serial.print("Word Identified: ");
           Serial.println(WORDS[smallest]);
+        drive_mode = smallest; // from 0-3, inclusive
+        start_drive_mode();
       } else {
-          Serial.println("Above KMEANS_THRESHOLD.");
+                  Serial.println("Above KMEANS_THRESHOLD.");
+
       }
 
-
       /*---------------------------*/
       /*---------------------------*/
       /*---------------------------*/
+    } else {
+        Serial.println("Below LOUDNESS_THRESHOLD.");
     }
-    else {
-      Serial.println("Below LOUDNESS_THRESHOLD.");
-    }
-
 
     delay(2000);
-    re_pointer = 0;
+    re_pointer = 0; // start recording from beginning if we don't start driving
+  }
+
+  else if (loop_mode == MODE_DRIVE && do_loop) {
+    if (step_num < JOLT_STEPS) {
+      write_pwm(left_jolt, right_jolt);
+    }
+    else {
+
+      // Save positions because _left_position and _right_position
+      // can change in the middle of one loop.
+      int left_position = left_encoder.pos;
+      int right_position = right_encoder.pos;
+
+      /*---------------------------*/
+      /*      CODE BLOCK CON0      */
+      /*---------------------------*/
+
+      float delta = left_position - right_position + delta_ss;
+      delta = delta - delta_reference(step_num) - straight_correction(step_num);
+
+      // Drive straight using feedback
+      // Compute the needed pwm values for each wheel using delta and v_star
+      int left_cur_pwm = driveStraight_left(delta);
+      int right_cur_pwm = driveStraight_right(delta);
+//
+//      Serial.println("Writing Power");
+//      Serial.print("(");
+//      Serial.print(left_cur_pwm);
+//      Serial.print(",");
+//      Serial.print(right_cur_pwm);
+//      Serial.println(")");
+      
+      write_pwm(left_cur_pwm, right_cur_pwm);
+
+      /*---------------------------*/
+      /*---------------------------*/
+      /*---------------------------*/
+    }
+
+    // Counter for how many times loop is executed since entering DRIVE MODE
+    step_num++;
+
+    if (step_num == sample_lens[drive_mode]) {
+      // Completely stop and go back to listen MODE after 3 seconds
+      start_listen_mode();
+    }
+
+    do_loop = 0;
   }
 }
 
@@ -250,9 +465,12 @@ bool envelope(int* data, float* data_out) {
 /*     Helper functions      */
 /*---------------------------*/
 
+void write_pwm(int pwm_left, int pwm_right) {
+  analogWrite(LEFT_MOTOR, (int) min(max(0, pwm_left), 255));
+  analogWrite(RIGHT_MOTOR, (int) min(max(0, pwm_right), 255));
+}
+
 void reset_blinker(void) {
-  pinMode(RED_LED, OUTPUT);
-  pinMode(GREEN_LED, OUTPUT);
   digitalWrite(RED_LED, HIGH);
   delay(100);
   digitalWrite(RED_LED, LOW);
@@ -265,27 +483,76 @@ void reset_blinker(void) {
   digitalWrite(GREEN_LED, HIGH);
   delay(100);
   digitalWrite(GREEN_LED, LOW);
+}
+
+void start_listen_mode(void) {
+  re_pointer = 0;
+  write_pwm(0, 0);
+  delay(3000); // 3 seconds buffer for mic cap settling
+  timer_mode = MODE_LISTEN;
+  setTimer(MODE_LISTEN);
+}
+
+void start_drive_mode(void) {
+  timer_mode = MODE_DRIVE;
+  step_num = 0;
+  left_encoder.pos = 0;
+  right_encoder.pos = 0;
+  setTimer(MODE_DRIVE);
 }
 
 /*---------------------------*/
 /*    Interrupt functions    */
 /*---------------------------*/
 
-// ISR for timestep
-#pragma vector=TIMER2_A0_VECTOR    // Timer A ISR
-__interrupt void Timer2_A0_ISR(void) {
-  if (re_pointer < SIZE) {
-    digitalWrite(RED_LED, HIGH);
-    re[re_pointer] = (analogRead(MIC_INPUT) >> 4) - 128;
-    re_pointer += 1;
+#define AVG_DECAY_RATE              0.3
+#define LOW_THRESH                  ((int) (0.2*4096))
+#define HIGH_THRESH                 ((int) (0.8*4096))
+
+void check_encoder(encoder_t* enc) {
+  int new_val = analogRead(enc->pin);
+  enc->avg = (int) (AVG_DECAY_RATE*enc->avg + (1 - AVG_DECAY_RATE)*new_val);
+  if ((enc->level == LOW && HIGH_THRESH < enc->avg) ||
+      (enc->level == HIGH && enc->avg < LOW_THRESH)) {
+    enc->pos++;
+    enc->level = !enc->level;
   }
 }
 
+void check_encoders(void) {
+  check_encoder(&left_encoder);
+  check_encoder(&right_encoder);
+}
+
 // Set timer for timestep; use A2 since A0 & A1 are used by PWM
-void setTimer(void) {
-  // Set the timer based on 25MHz clock
-  TA2CCR0 = (unsigned int) (25000*ADC_TIMER_MS);
-  TA2CCTL0 = CCIE;
-  __bis_SR_register(GIE);
-  TA2CTL = TASSEL_2 + MC_1 + TACLR + ID_0;
+void setTimer(boolean mode) {
+  if (mode == MODE_LISTEN) {
+    // Set the timer based on 25MHz clock
+    TA2CCR0 = (unsigned int) (25000*ADC_TIMER_MS);
+    TA2CCTL0 = CCIE;
+    __bis_SR_register(GIE);
+    TA2CTL = TASSEL_2 + MC_1 + TACLR + ID_0;
+  }
+  else if (mode == MODE_DRIVE) {
+    TA2CCR0 = (unsigned int) (32.768*SAMPLING_INTERVAL); // set the timer based on 32kHz clock
+    TA2CCTL0 = CCIE; // enable interrupts for Timer A
+    __bis_SR_register(GIE);
+    TA2CTL = TASSEL_1 + MC_1 + TACLR + ID_0;
+  }
+  timer_mode = mode;
+}
+
+// ISR for timestep
+#pragma vector=TIMER2_A0_VECTOR    // Timer A ISR
+__interrupt void Timer2_A0_ISR(void) {
+  if (timer_mode == MODE_LISTEN) {
+    if (re_pointer < SIZE) {
+      digitalWrite(RED_LED, HIGH);
+      re[re_pointer] = (analogRead(MIC_INPUT) >> 4) - 128;
+      re_pointer += 1;
+    }
+  }
+  else if (timer_mode == MODE_DRIVE) {
+    do_loop = 1;
+  }
 }
