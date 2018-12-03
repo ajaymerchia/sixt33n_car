@@ -35,6 +35,10 @@ int timer_mode = MODE_LISTEN;
 #define DRIVE_LEFT                  1
 #define DRIVE_CLOSE                 2
 #define DRIVE_RIGHT                 3
+//char *WORDS[4] = {"Matrix", "Modify", "EECS", "Rhodes"};
+char *MODES[4] = {"DRIVE_FAR", "DRIVE_LEFT", "DRIVE_CLOSE", "DRIVE_RIGHT"};
+
+
 
 #define JOLT_STEPS                  2
 
@@ -110,7 +114,7 @@ float delta_ss = 0;
 //#define TURN_RADIUS                 91 // in cm - 6 feet diameter = 3 tiles in 125 Cory
  #define TURN_RADIUS                 60 // in cm - 4 feet diameter = 2 tiles in 125 Cory
 
-int run_times[4] = {4000, 2000, 2500, 2000};
+int run_times[4] = {3500, 2000, 1500, 1500};
 
 float delta_reference(int k) {
   // YOUR CODE HERE
@@ -166,8 +170,8 @@ float straight_correction(int k) {
 #define PRELENGTH                   5
 #define THRESHOLD                   0.5
 
-#define KMEANS_THRESHOLD            0.031
-#define LOUDNESS_THRESHOLD          700
+#define KMEANS_THRESHOLD            0.041
+#define LOUDNESS_THRESHOLD          500
 
 /*---------------------------*/
 /*---------------------------*/
@@ -293,7 +297,6 @@ void setup(void) {
 void loop(void) {
   check_encoders();
   if (timer_mode == MODE_LISTEN && re_pointer == SIZE){
-//      Serial.println("I'm alive");
 
     // Stop motor
     write_pwm(0, 0);
@@ -301,7 +304,6 @@ void loop(void) {
 
     // if enveloped data is above some preset value
     if (envelope(re, result)) {
-//      Serial.println("I'm enveloped");
 
       // Reset projection result variables declared above
       proj1 = 0;
@@ -383,13 +385,15 @@ void loop(void) {
       // Compute the needed pwm values for each wheel using delta and v_star
       int left_cur_pwm = driveStraight_left(delta);
       int right_cur_pwm = driveStraight_right(delta);
-//
-//      Serial.println("Writing Power");
-//      Serial.print("(");
-//      Serial.print(left_cur_pwm);
-//      Serial.print(",");
-//      Serial.print(right_cur_pwm);
-//      Serial.println(")");
+
+      Serial.print("Drive Mode: ");
+      Serial.println(MODES[drive_mode]);
+      Serial.println("Writing Power");
+      Serial.print("(");
+      Serial.print(left_cur_pwm);
+      Serial.print(",");
+      Serial.print(right_cur_pwm);
+      Serial.println(")");
       
       write_pwm(left_cur_pwm, right_cur_pwm);
 
